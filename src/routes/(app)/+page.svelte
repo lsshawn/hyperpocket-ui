@@ -61,7 +61,8 @@
 		</div>
 
 		<div class="mb-8 grid grid-cols-2 gap-4">
-			<button
+			<a
+				href="/top-up"
 				class="flex items-center justify-center gap-2 rounded-lg bg-blue-500 py-3 font-semibold text-white transition-colors hover:bg-blue-600"
 			>
 				<svg
@@ -80,7 +81,7 @@
 					<line x1="5" y1="12" x2="19" y2="12"></line>
 				</svg>
 				<span>Add Money</span>
-			</button>
+			</a>
 			<button
 				class="flex items-center justify-center gap-2 rounded-lg bg-gray-200 py-3 font-semibold text-gray-700 transition-colors hover:bg-gray-300"
 			>
