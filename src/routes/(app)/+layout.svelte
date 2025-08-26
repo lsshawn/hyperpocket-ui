@@ -3,7 +3,7 @@
 	import favicon from '$lib/assets/favicon.svg';
 	import AppHeader from '$lib/components/AppHeader.svelte';
 
-	let { children } = $props();
+	let { children, data } = $props();
 </script>
 
 <svelte:head>
@@ -11,4 +11,5 @@
 </svelte:head>
 
 <AppHeader />
+user id: {data.user.id}
 {@render children?.()}
