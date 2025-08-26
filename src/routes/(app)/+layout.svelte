@@ -11,5 +11,4 @@
 </svelte:head>
 
 <AppHeader />
-user id: {data.user.id}
 {@render children?.()}
