@@ -3,6 +3,8 @@
 	import { goto, replaceState } from '$app/navigation';
 	import { onMount } from 'svelte';
 
+	let { onSuccess } = $props();
+
 	let isOtpStep = $state(false);
 	let email = $state('');
 	let otp = $state(['', '', '', '', '', '']);
@@ -51,7 +53,9 @@
 		// }
 		// temporary
 		success = true;
-		goto('/', { replaceState: true, invalidateAll: true });
+		console.log('[LS] -> src/lib/components/LoginForm.svelte:53 -> success: ', success);
+		// After successful OTP, go to payment confirmation page
+		onSuccess?.();
 
 		isLoading = false;
 	}
@@ -239,7 +243,7 @@
 						{#if isLoading}
 							<span class="loading loading-md loading-spinner" />
 						{:else}
-							{success ? 'Logging in...' : 'Login'}
+							{success ? 'Success! Redirecting...' : 'Login'}
 						{/if}
 					</button>
 					<div class="mt-4 text-red-500">{errorMessage}</div>

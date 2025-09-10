@@ -8,6 +8,7 @@
 	<div class="flex-none">
 		<ul class="menu menu-horizontal p-0">
 			<li><a href="/transactions">Transactions</a></li>
+			<li><a href="/payment-gateway">Payment Gateway Demo</a></li>
 		</ul>
 	</div>
 </div>
