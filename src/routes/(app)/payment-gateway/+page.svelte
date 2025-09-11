@@ -7,6 +7,7 @@
 
 	function onSuccess() {
 		goto('/payment-gateway/confirm-wallet-payment', { replaceState: true });
+		showLoginForm = false;
 	}
 </script>
 
