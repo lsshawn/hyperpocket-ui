@@ -6,7 +6,7 @@
 	let showLoginForm = $state(false);
 
 	function onSuccess() {
-		goto('/payment-gateway/confirm-wallet-payment');
+		goto('/payment-gateway/confirm-wallet-payment', { replaceState: true });
 	}
 </script>
 

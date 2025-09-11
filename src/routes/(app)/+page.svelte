@@ -72,7 +72,7 @@
 			</button>
 			<button class="btn btn-primary">
 				<Icon icon="lucide:send" />
-				<span>Withdraw</span>
+				<span>Transfer</span>
 			</button>
 		</div>
 
