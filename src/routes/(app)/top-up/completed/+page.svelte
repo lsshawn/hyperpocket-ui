@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
 	import Icon from '@iconify/svelte';
 
 	let transactionId = $derived($page.url.searchParams.get('transactionId') || '');
-	let returnUrl = $derived($page.url.searchParams.get('returnUrl') || '/');
 	let redirectCountdown = $state(5);
 
 	onMount(() => {
@@ -13,8 +13,8 @@
 			redirectCountdown--;
 			if (redirectCountdown <= 0) {
 				clearInterval(interval);
-				// In production, redirect to the return URL from the originating app
-				window.location.href = returnUrl;
+				// Redirect back to wallet dashboard
+				goto('/');
 			}
 		}, 1000);
 
@@ -23,7 +23,7 @@
 </script>
 
 <svelte:head>
-	<title>Payment Successful</title>
+	<title>Top-up Successful</title>
 </svelte:head>
 
 <div class="flex min-h-screen flex-col items-center justify-center bg-gray-50 p-4 font-sans">
@@ -31,9 +31,9 @@
 		<div class="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-success/20">
 			<Icon icon="lucide:check-circle-2" class="h-12 w-12 text-success" />
 		</div>
-		<h1 class="mb-4 text-3xl font-bold text-gray-800">Payment Successful!</h1>
+		<h1 class="mb-4 text-3xl font-bold text-gray-800">Top-up Successful!</h1>
 		<p class="mb-2 text-gray-600">
-			Thank you for your payment. Your transaction has been completed successfully.
+			Your wallet has been topped up successfully. The funds will be available in your account shortly.
 		</p>
 
 		{#if transactionId}
@@ -48,11 +48,11 @@
 		<div class="mb-6 rounded-lg border border-info/30 bg-info/10 p-4">
 			<Icon icon="lucide:clock" class="mx-auto mb-2 h-8 w-8 text-info" />
 			<p class="text-sm text-gray-600">
-				Redirecting you back in <span class="font-bold text-info">{redirectCountdown}</span>
+				Redirecting to your wallet in <span class="font-bold text-info">{redirectCountdown}</span>
 				seconds...
 			</p>
 		</div>
 
-		<a href={returnUrl} class="btn btn-primary btn-block">Return to App Now</a>
+		<a href="/" class="btn btn-primary btn-block">Return to Wallet Now</a>
 	</div>
 </div>
