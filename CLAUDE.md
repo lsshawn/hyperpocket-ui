@@ -96,6 +96,72 @@ When implementing transaction logic:
 - Update both `balance` and `availableBalance` appropriately
 - Pending transactions affect `balance`, completed ones affect `availableBalance`
 
+## Payment Gateway System
+
+This application includes a reusable payment gateway that can be embedded in other applications (ride-hailing, car rental, delivery, etc.).
+
+### Payment Gateway Architecture
+
+**Location**: `src/lib/components/payment/`
+
+The payment gateway is built as modular Svelte components:
+
+- `PaymentGateway.svelte` - Main entry point with payment method selector
+- `WalletPayment.svelte` - Wallet balance check and PIN verification
+- `CreditCardPayment.svelte` - Braintree Drop-in UI integration
+- `BankTransferPayment.svelte` - Placeholder for future bank transfer support
+
+### API Integration
+
+**Wallet API Client**: `src/lib/api/wallet-client.ts`
+
+Provides methods to interact with the wallet backend:
+- `getWalletBalance()` - Fetch wallet balance
+- `payWithWallet()` - Deduct from wallet with PIN verification
+- `getBraintreeClientToken()` - Get Braintree client token for card payments
+- `capturePayment()` - Charge credit card immediately
+- `authorizePayment()` - Pre-authorize (hold) funds on card
+
+**Type Definitions**: `src/lib/types/wallet.ts`
+
+### Embedding the Payment Gateway
+
+The gateway supports multiple integration methods:
+
+1. **URL Parameters** (for webview/iframe):
+   ```
+   /payment-gateway?amount=20.00&currency=USD&productType=ride_hailing&sourceEntityType=booking&sourceEntityId=booking-123&returnUrl=https://your-app.com
+   ```
+
+2. **Component Import** (for Svelte apps):
+   ```svelte
+   <PaymentGateway
+     paymentIntent={paymentIntentObject}
+     apiBaseUrl={config.walletApiUrl}
+     onSuccess={handleSuccess}
+     onError={handleError}
+   />
+   ```
+
+See `PAYMENT_GATEWAY.md` for detailed integration guide including iOS, Android, and React Native examples.
+
+### Payment Flow
+
+1. User redirected to `/payment-gateway` with payment parameters
+2. Gateway fetches wallet balance from backend
+3. User selects payment method (Wallet or Credit Card)
+4. User completes payment (PIN for wallet, card details for credit card)
+5. Gateway calls wallet backend API to process payment
+6. User redirected to `/payment-gateway/completed` with transaction ID
+7. Success page auto-redirects back to originating app
+
+### Environment Variables
+
+Required in `.env`:
+- `PUBLIC_WALLET_API_URL` - Wallet backend API URL (exposed to client)
+
+Access via: `import { config } from '$lib/config'`
+
 ## Configuration Files
 - `drizzle.config.ts` - Drizzle ORM configuration (schema path, PostgreSQL dialect)
 - `svelte.config.js` - SvelteKit configuration with adapter-auto
