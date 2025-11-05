@@ -1,15 +1,17 @@
 // Wallet API Types
-export type Currency = 'USD' | 'NGN' | 'THB' | 'EUR' | 'GBP';
+export type Currency = 'USD' | 'NGN' | 'THB' | 'EUR' | 'GBP' | 'MYR' | 'SGD';
 
 export type ProductType = 'ride_hailing' | 'car_rental' | 'delivery';
 
-export type TransactionType = 'deposit' | 'withdrawal' | 'transfer' | 'payment' | 'fee';
+export type TransactionType = 'deposit' | 'withdrawal' | 'transfer' | 'payment' | 'fee' | 'refund';
 
 export type TransactionStatus = 'pending' | 'completed' | 'failed' | 'cancelled' | 'reversed';
 
 export type TransactionDirection = 'credit' | 'debit';
 
 export type PaymentMethod = 'wallet' | 'credit_card' | 'bank_transfer';
+
+export type PaymentProcessor = 'braintree' | 'stripe' | 'adyen' | 'razorpay';
 
 // API Response wrapper
 export interface ApiResponse<T> {
@@ -32,7 +34,7 @@ export interface WalletAccount {
 // Transaction
 export interface Transaction {
 	id: string;
-	walletAccountId: string;
+	walletAccountId?: string;
 	type: TransactionType;
 	direction: TransactionDirection;
 	status: TransactionStatus;
@@ -45,6 +47,9 @@ export interface Transaction {
 	description?: string;
 	metadata?: Record<string, any>;
 	reference?: string;
+	platformRef?: string;
+	processor?: PaymentProcessor;
+	processorTransactionId?: string;
 	createdAt: string;
 	updatedAt: string;
 	settledAt?: string;
@@ -60,54 +65,70 @@ export interface PaymentIntent {
 	sourceEntityId: string;
 	description?: string;
 	metadata?: Record<string, any>;
+	country?: string;
 }
 
-export interface BraintreeClientToken {
-	clientToken: string;
-}
-
-export interface PaymentAuthorization {
-	transactionId: string;
-	status: string;
-	amount: string;
+export interface BraintreeClientTokenResponse {
+	data: {
+		clientToken: string;
+	};
 	message: string;
 }
 
-export interface PaymentCapture {
-	transactionId: string;
+// Payment Authorization (from backend)
+export interface PaymentAuthorization {
+	id: string;
+	gatewayTransactionId: string;
+	processor: PaymentProcessor;
 	status: string;
-	amount: string;
-	settledAt: string;
+	authorizedAmount: string;
+	capturedAmount: string;
+	currency: string;
+	platformRef: string;
 }
 
-// Wallet Balance Request
-export interface WalletBalanceRequest {
-	userId: string;
-	currency: Currency;
+// Charge Payment Response (from /payments/charge)
+export interface ChargePaymentResponse {
+	data: {
+		authorization: PaymentAuthorization;
+		transaction: Transaction;
+	};
+	message: string;
 }
 
-// Wallet Payment Request
-export interface WalletPaymentRequest {
+// Wallet Deposit Payment Request (for /wallets/deposit/payment)
+export interface WalletDepositPaymentRequest {
 	userId: string;
 	amount: number;
-	currency: Currency;
-	pin: string;
+	currency: string;
+	paymentMethod: 'credit_card' | 'bank_transfer';
+	paymentMethodNonce: string;
+	country?: string;
+	idempotencyKey: string;
+	processorType?: PaymentProcessor;
 	productType: ProductType;
 	sourceEntityType: string;
 	sourceEntityId: string;
 	description?: string;
-	metadata?: Record<string, any>;
 }
 
-// Credit Card Payment Request
+// Wallet Withdraw Request (for /wallets/withdraw)
+export interface WalletWithdrawRequest {
+	userId: string;
+	amount: number;
+	currency: string;
+}
+
+// Credit Card Payment Request (for /payments/charge)
 export interface CreditCardPaymentRequest {
 	userId: string;
 	amount: number;
-	currency: Currency;
+	currency: string;
 	paymentMethodNonce: string;
 	productType: ProductType;
 	sourceEntityType: string;
 	sourceEntityId: string;
+	idempotencyKey: string;
+	country?: string;
 	description?: string;
-	metadata?: Record<string, any>;
 }

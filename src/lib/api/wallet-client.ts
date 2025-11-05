@@ -1,16 +1,17 @@
 import type {
 	ApiResponse,
-	BraintreeClientToken,
+	BraintreeClientTokenResponse,
+	ChargePaymentResponse,
 	CreditCardPaymentRequest,
-	Currency,
-	PaymentAuthorization,
-	PaymentCapture,
 	Transaction,
 	WalletAccount,
-	WalletBalanceRequest,
-	WalletPaymentRequest
+	WalletWithdrawRequest
 } from '$lib/types/wallet';
 
+/**
+ * Wallet API Client
+ * Integrates with Hyperpocket Wallet Backend Service
+ */
 export class WalletApiClient {
 	private baseUrl: string;
 
@@ -20,194 +21,156 @@ export class WalletApiClient {
 
 	/**
 	 * Get wallet account balance for a user and currency
+	 * GET /wallets?userId={userId}&currency={currency}
 	 */
-	async getWalletBalance(params: WalletBalanceRequest): Promise<ApiResponse<WalletAccount>> {
+	async getWalletBalance(userId: string, currency: string = 'USD'): Promise<WalletAccount> {
 		const url = new URL(`${this.baseUrl}/wallets`);
-		url.searchParams.append('userId', params.userId);
-		url.searchParams.append('currency', params.currency);
+		url.searchParams.append('userId', userId);
+		url.searchParams.append('currency', currency);
 
 		const response = await fetch(url.toString(), {
 			method: 'GET',
 			headers: {
 				'Content-Type': 'application/json'
-			}
+			},
+			credentials: 'include'
 		});
 
 		if (!response.ok) {
 			const error = await response.json();
-			throw new Error(error.message || 'Failed to fetch wallet balance');
+			throw new Error(error.message || error.details || 'Failed to fetch wallet balance');
 		}
 
-		return response.json();
+		const result: ApiResponse<WalletAccount> = await response.json();
+		if (!result.data) {
+			throw new Error('No wallet data received');
+		}
+
+		return result.data;
 	}
 
 	/**
 	 * Get Braintree client token for Drop-in UI
+	 * GET /payments/client-token?customerId={customerId}
 	 */
-	async getBraintreeClientToken(userId: string): Promise<ApiResponse<BraintreeClientToken>> {
-		const response = await fetch(`${this.baseUrl}/payments/client-token`, {
-			method: 'POST',
+	async getBraintreeClientToken(customerId?: string): Promise<string> {
+		const url = new URL(`${this.baseUrl}/payments/client-token`);
+		if (customerId) {
+			url.searchParams.append('customerId', customerId);
+		}
+
+		const response = await fetch(url.toString(), {
+			method: 'GET',
 			headers: {
 				'Content-Type': 'application/json'
 			},
-			body: JSON.stringify({ userId })
+			credentials: 'include'
 		});
 
 		if (!response.ok) {
 			const error = await response.json();
-			throw new Error(error.message || 'Failed to get client token');
+			throw new Error(error.message || error.details || 'Failed to get client token');
 		}
 
-		return response.json();
+		const result: BraintreeClientTokenResponse = await response.json();
+		return result.data.clientToken;
 	}
 
 	/**
-	 * Pay with wallet balance (deduct from available balance)
+	 * Pay with wallet balance (withdraw from wallet)
+	 * POST /wallets/withdraw
 	 */
-	async payWithWallet(params: WalletPaymentRequest): Promise<ApiResponse<Transaction>> {
-		const response = await fetch(`${this.baseUrl}/payments/wallet`, {
+	async payWithWallet(params: WalletWithdrawRequest): Promise<Transaction> {
+		const response = await fetch(`${this.baseUrl}/wallets/withdraw`, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json'
 			},
+			credentials: 'include',
 			body: JSON.stringify(params)
 		});
 
 		if (!response.ok) {
 			const error = await response.json();
-			throw new Error(error.message || 'Wallet payment failed');
+			throw new Error(error.message || error.details || 'Wallet payment failed');
 		}
 
-		return response.json();
+		const result: ApiResponse<Transaction> = await response.json();
+		if (!result.data) {
+			throw new Error('No transaction data received');
+		}
+
+		return result.data;
 	}
 
 	/**
 	 * Authorize a credit card payment (pre-authorization hold)
+	 * POST /payments/authorize
 	 */
-	async authorizePayment(
-		params: CreditCardPaymentRequest
-	): Promise<ApiResponse<PaymentAuthorization>> {
+	async authorizePayment(params: CreditCardPaymentRequest): Promise<ChargePaymentResponse> {
 		const response = await fetch(`${this.baseUrl}/payments/authorize`, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json'
 			},
+			credentials: 'include',
 			body: JSON.stringify(params)
 		});
 
 		if (!response.ok) {
 			const error = await response.json();
-			throw new Error(error.message || 'Payment authorization failed');
+			throw new Error(error.message || error.details || 'Payment authorization failed');
 		}
 
-		return response.json();
+		return await response.json();
 	}
 
 	/**
-	 * Capture a credit card payment immediately
+	 * Charge credit card payment immediately
+	 * POST /payments/charge
 	 */
-	async capturePayment(params: CreditCardPaymentRequest): Promise<ApiResponse<PaymentCapture>> {
+	async chargePayment(params: CreditCardPaymentRequest): Promise<ChargePaymentResponse> {
 		const response = await fetch(`${this.baseUrl}/payments/charge`, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json'
 			},
+			credentials: 'include',
 			body: JSON.stringify(params)
 		});
 
 		if (!response.ok) {
 			const error = await response.json();
-			throw new Error(error.message || 'Payment capture failed');
+			throw new Error(error.message || error.details || 'Payment charge failed');
 		}
 
-		return response.json();
-	}
-
-	/**
-	 * Release a pre-authorized payment
-	 */
-	async releaseAuthorization(transactionId: string): Promise<ApiResponse<any>> {
-		const response = await fetch(`${this.baseUrl}/payments/release`, {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json'
-			},
-			body: JSON.stringify({ transactionId })
-		});
-
-		if (!response.ok) {
-			const error = await response.json();
-			throw new Error(error.message || 'Failed to release authorization');
-		}
-
-		return response.json();
-	}
-
-	/**
-	 * Capture a partial amount from a pre-authorized payment
-	 */
-	async capturePartialAuthorization(
-		transactionId: string,
-		claimAmount: number
-	): Promise<ApiResponse<PaymentCapture>> {
-		const response = await fetch(`${this.baseUrl}/payments/capturePartial`, {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json'
-			},
-			body: JSON.stringify({ transactionId, claimAmount })
-		});
-
-		if (!response.ok) {
-			const error = await response.json();
-			throw new Error(error.message || 'Failed to capture partial payment');
-		}
-
-		return response.json();
+		return await response.json();
 	}
 
 	/**
 	 * Get transaction by ID
+	 * GET /transactions/{transactionId}
 	 */
-	async getTransaction(transactionId: string): Promise<ApiResponse<Transaction>> {
+	async getTransaction(transactionId: string): Promise<Transaction> {
 		const response = await fetch(`${this.baseUrl}/transactions/${transactionId}`, {
 			method: 'GET',
 			headers: {
 				'Content-Type': 'application/json'
-			}
+			},
+			credentials: 'include'
 		});
 
 		if (!response.ok) {
 			const error = await response.json();
-			throw new Error(error.message || 'Failed to fetch transaction');
+			throw new Error(error.message || error.details || 'Failed to fetch transaction');
 		}
 
-		return response.json();
-	}
-
-	/**
-	 * Get wallet transactions
-	 */
-	async getWalletTransactions(userId: string, currency?: Currency): Promise<ApiResponse<Transaction[]>> {
-		const url = new URL(`${this.baseUrl}/wallets/transactions`);
-		url.searchParams.append('userId', userId);
-		if (currency) {
-			url.searchParams.append('currency', currency);
+		const result: ApiResponse<Transaction> = await response.json();
+		if (!result.data) {
+			throw new Error('No transaction data received');
 		}
 
-		const response = await fetch(url.toString(), {
-			method: 'GET',
-			headers: {
-				'Content-Type': 'application/json'
-			}
-		});
-
-		if (!response.ok) {
-			const error = await response.json();
-			throw new Error(error.message || 'Failed to fetch transactions');
-		}
-
-		return response.json();
+		return result.data;
 	}
 }
 

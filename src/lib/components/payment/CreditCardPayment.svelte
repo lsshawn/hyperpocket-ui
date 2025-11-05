@@ -32,16 +32,16 @@
 			await loadBraintreeScript();
 
 			// Get client token from backend
-			const tokenResponse = await apiClient.getBraintreeClientToken(paymentIntent.userId);
+			const clientToken = await apiClient.getBraintreeClientToken(paymentIntent.userId);
 
-			if (!tokenResponse.data?.clientToken) {
+			if (!clientToken) {
 				throw new Error('Failed to get Braintree client token');
 			}
 
 			// Initialize Braintree Drop-in UI
 			const braintree = (window as any).braintree;
 			dropinInstance = await braintree.dropin.create({
-				authorization: tokenResponse.data.clientToken,
+				authorization: clientToken,
 				container: dropinContainer,
 				card: {
 					cardholderName: {
@@ -91,6 +91,9 @@
 			// Request payment method nonce from Braintree
 			const { nonce } = await dropinInstance.requestPaymentMethod();
 
+			// Generate idempotency key
+			const idempotencyKey = `${paymentIntent.sourceEntityId}-payment-${Date.now()}`;
+
 			// Call backend API to process payment
 			const response = usePreAuth
 				? await apiClient.authorizePayment({
@@ -101,10 +104,11 @@
 						productType: paymentIntent.productType,
 						sourceEntityType: paymentIntent.sourceEntityType,
 						sourceEntityId: paymentIntent.sourceEntityId,
-						description: paymentIntent.description,
-						metadata: paymentIntent.metadata
+						idempotencyKey,
+						country: paymentIntent.country,
+						description: paymentIntent.description
 					})
-				: await apiClient.capturePayment({
+				: await apiClient.chargePayment({
 						userId: paymentIntent.userId,
 						amount: paymentIntent.amount,
 						currency: paymentIntent.currency,
@@ -112,14 +116,16 @@
 						productType: paymentIntent.productType,
 						sourceEntityType: paymentIntent.sourceEntityType,
 						sourceEntityId: paymentIntent.sourceEntityId,
-						description: paymentIntent.description,
-						metadata: paymentIntent.metadata
+						idempotencyKey,
+						country: paymentIntent.country,
+						description: paymentIntent.description
 					});
 
-			if (response.data?.transactionId) {
-				onSuccess(response.data.transactionId);
+			// Response structure: { data: { authorization, transaction }, message }
+			if (response.data?.authorization?.id) {
+				onSuccess(response.data.authorization.id);
 			} else {
-				throw new Error('Payment completed but no transaction ID received');
+				throw new Error('Payment completed but no authorization ID received');
 			}
 		} catch (error) {
 			const message = error instanceof Error ? error.message : 'Payment failed';

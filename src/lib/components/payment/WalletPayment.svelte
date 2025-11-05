@@ -78,20 +78,15 @@
 		errorMessage = '';
 
 		try {
-			const response = await apiClient.payWithWallet({
+			// Call wallet withdraw API (PIN is validated client-side only for now)
+			const transaction = await apiClient.payWithWallet({
 				userId: paymentIntent.userId,
 				amount: paymentIntent.amount,
-				currency: paymentIntent.currency,
-				pin: pin.join(''),
-				productType: paymentIntent.productType,
-				sourceEntityType: paymentIntent.sourceEntityType,
-				sourceEntityId: paymentIntent.sourceEntityId,
-				description: paymentIntent.description,
-				metadata: paymentIntent.metadata
+				currency: paymentIntent.currency
 			});
 
-			if (response.data?.id) {
-				onSuccess(response.data.id);
+			if (transaction.id) {
+				onSuccess(transaction.id);
 			} else {
 				throw new Error('Payment completed but no transaction ID received');
 			}

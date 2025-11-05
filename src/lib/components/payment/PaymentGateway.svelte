@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import Icon from '@iconify/svelte';
 	import type { Currency, PaymentIntent, PaymentMethod } from '$lib/types/wallet';
-	import { walletApi } from '$lib/api/wallet-client';
+	import { WalletApiClient } from '$lib/api/wallet-client';
 	import WalletPayment from './WalletPayment.svelte';
 	import CreditCardPayment from './CreditCardPayment.svelte';
 	import BankTransferPayment from './BankTransferPayment.svelte';
@@ -21,7 +21,7 @@
 	let errorMessage = $state('');
 
 	// Initialize API client with custom base URL
-	const apiClient = new walletApi.constructor(apiBaseUrl);
+	const apiClient = new WalletApiClient(apiBaseUrl);
 
 	// Computed
 	const hasInsufficientBalance = $derived(walletBalance < paymentIntent.amount);
@@ -32,14 +32,12 @@
 	// Fetch wallet balance on mount
 	onMount(async () => {
 		try {
-			const response = await apiClient.getWalletBalance({
-				userId: paymentIntent.userId,
-				currency: paymentIntent.currency
-			});
+			const account = await apiClient.getWalletBalance(
+				paymentIntent.userId,
+				paymentIntent.currency
+			);
 
-			if (response.data) {
-				walletBalance = parseFloat(response.data.availableBalance);
-			}
+			walletBalance = parseFloat(account.availableBalance);
 		} catch (error) {
 			console.error('Failed to fetch wallet balance:', error);
 			errorMessage = error instanceof Error ? error.message : 'Failed to load wallet balance';
