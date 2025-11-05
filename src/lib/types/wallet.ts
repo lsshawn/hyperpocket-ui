@@ -132,3 +132,62 @@ export interface CreditCardPaymentRequest {
 	country?: string;
 	description?: string;
 }
+
+// Admin Types
+export interface AdminTransactionsRequest {
+	page?: number;
+	limit?: number;
+	userId?: string;
+	type?: TransactionType;
+	currency?: string;
+	processor?: PaymentProcessor;
+	startDate?: string;
+	endDate?: string;
+}
+
+export interface AdminTransactionsResponse {
+	data: {
+		transactions: Transaction[];
+		pagination: {
+			page: number;
+			limit: number;
+			total: number;
+			totalPages: number;
+		};
+	};
+}
+
+export interface FeeSummaryItem {
+	type: TransactionType;
+	currency: string;
+	processor: PaymentProcessor;
+	totalGrossAmount: string;
+	totalFees: string;
+	totalNetAmount: string;
+	transactionCount: number;
+}
+
+export interface FeeSummaryResponse {
+	data: {
+		summary: FeeSummaryItem[];
+		totals: {
+			totalGrossAmount: string;
+			totalProcessorFees: string;
+			totalNetAmount: string;
+			transactionCount: number;
+		};
+	};
+}
+
+export interface ProcessorBreakdownItem {
+	processor: PaymentProcessor;
+	currency: string;
+	totalTransactions: number;
+	totalVolume: string;
+	totalFeesPaid: string;
+	avgFeePercentage: string;
+}
+
+export interface ProcessorBreakdownResponse {
+	data: ProcessorBreakdownItem[];
+}

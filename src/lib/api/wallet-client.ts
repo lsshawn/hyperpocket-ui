@@ -1,8 +1,12 @@
 import type {
+	AdminTransactionsRequest,
+	AdminTransactionsResponse,
 	ApiResponse,
 	BraintreeClientTokenResponse,
 	ChargePaymentResponse,
 	CreditCardPaymentRequest,
+	FeeSummaryResponse,
+	ProcessorBreakdownResponse,
 	Transaction,
 	WalletAccount,
 	WalletWithdrawRequest
@@ -171,6 +175,92 @@ export class WalletApiClient {
 		}
 
 		return result.data;
+	}
+
+	/**
+	 * Admin: Get all transactions with filtering and pagination
+	 * GET /admin/transactions
+	 */
+	async getAdminTransactions(params: AdminTransactionsRequest = {}): Promise<AdminTransactionsResponse> {
+		const url = new URL(`${this.baseUrl}/admin/transactions`);
+
+		if (params.page) url.searchParams.append('page', params.page.toString());
+		if (params.limit) url.searchParams.append('limit', params.limit.toString());
+		if (params.userId) url.searchParams.append('userId', params.userId);
+		if (params.type) url.searchParams.append('type', params.type);
+		if (params.currency) url.searchParams.append('currency', params.currency);
+		if (params.processor) url.searchParams.append('processor', params.processor);
+		if (params.startDate) url.searchParams.append('startDate', params.startDate);
+		if (params.endDate) url.searchParams.append('endDate', params.endDate);
+
+		const response = await fetch(url.toString(), {
+			method: 'GET',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			credentials: 'include'
+		});
+
+		if (!response.ok) {
+			const error = await response.json();
+			throw new Error(error.message || error.details || 'Failed to fetch admin transactions');
+		}
+
+		return await response.json();
+	}
+
+	/**
+	 * Admin: Get fee summary and breakdown
+	 * GET /admin/fees/summary
+	 */
+	async getFeeSummary(params: {
+		currency?: string;
+		startDate?: string;
+		endDate?: string;
+		processor?: string;
+	} = {}): Promise<FeeSummaryResponse> {
+		const url = new URL(`${this.baseUrl}/admin/fees/summary`);
+
+		if (params.currency) url.searchParams.append('currency', params.currency);
+		if (params.startDate) url.searchParams.append('startDate', params.startDate);
+		if (params.endDate) url.searchParams.append('endDate', params.endDate);
+		if (params.processor) url.searchParams.append('processor', params.processor);
+
+		const response = await fetch(url.toString(), {
+			method: 'GET',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			credentials: 'include'
+		});
+
+		if (!response.ok) {
+			const error = await response.json();
+			throw new Error(error.message || error.details || 'Failed to fetch fee summary');
+		}
+
+		return await response.json();
+	}
+
+	/**
+	 * Admin: Get processor breakdown and comparison
+	 * GET /admin/fees/processor-breakdown
+	 */
+	async getProcessorBreakdown(): Promise<ProcessorBreakdownResponse> {
+		const response = await fetch(`${this.baseUrl}/admin/fees/processor-breakdown`, {
+			method: 'GET',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			credentials: 'include'
+		});
+
+		if (!response.ok) {
+			const error = await response.json();
+			throw new Error(error.message || error.details || 'Failed to fetch processor breakdown');
+		}
+
+		return await response.json();
 	}
 }
 
